@@ -84,7 +84,7 @@ type DockerContainer struct {
 	logProductionStop  chan struct{}
 
 	logProductionTimeout *time.Duration
-	logger               Logging
+	logger               log.Logging
 	lifecycleHooks       []ContainerLifecycleHooks
 }
 
@@ -94,7 +94,7 @@ func (c *DockerContainer) WithLogProductionTimeout(timeout time.Duration) {
 }
 
 // SetLogger sets the logger for the container
-func (c *DockerContainer) SetLogger(logger Logging) {
+func (c *DockerContainer) SetLogger(logger log.Logging) {
 	c.logger = logger
 }
 

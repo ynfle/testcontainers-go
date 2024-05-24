@@ -1418,27 +1418,11 @@ func (p *DockerProvider) CreateNetwork(ctx context.Context, req NetworkRequest) 
 		}
 	}
 
-	if req.Labels == nil {
-		req.Labels = make(map[string]string)
-	}
-
 	tcConfig := p.Config().Config
-
-	nc := types.NetworkCreate{
-		Driver:         req.Driver,
-		CheckDuplicate: req.CheckDuplicate,
-		Internal:       req.Internal,
-		EnableIPv6:     req.EnableIPv6,
-		Attachable:     req.Attachable,
-		Labels:         req.Labels,
-		IPAM:           req.IPAM,
-	}
-
-	sessionID := core.SessionID()
 
 	var termSignal chan bool
 	if !tcConfig.RyukDisabled {
-		r, err := reuseOrCreateReaper(context.WithValue(ctx, core.DockerHostContextKey, p.host), sessionID, p)
+		r, err := reuseOrCreateReaper(context.WithValue(ctx, core.DockerHostContextKey, p.host), core.SessionID(), p)
 		if err != nil {
 			return nil, fmt.Errorf("%w: creating network reaper failed", err)
 		}
@@ -1448,11 +1432,6 @@ func (p *DockerProvider) CreateNetwork(ctx context.Context, req NetworkRequest) 
 		}
 	}
 
-	// add the labels that the reaper will use to terminate the network to the request
-	for k, v := range core.DefaultLabels(sessionID) {
-		req.Labels[k] = v
-	}
-
 	// Cleanup on error, otherwise set termSignal to nil before successful return.
 	defer func() {
 		if termSignal != nil {
@@ -1460,7 +1439,15 @@ func (p *DockerProvider) CreateNetwork(ctx context.Context, req NetworkRequest) 
 		}
 	}()
 
-	response, err := p.client.NetworkCreate(ctx, req.Name, nc)
+	response, err := corenetwork.New(ctx, corenetwork.Request{
+		Driver:         req.Driver,
+		CheckDuplicate: req.CheckDuplicate,
+		Internal:       req.Internal,
+		EnableIPv6:     req.EnableIPv6,
+		Attachable:     req.Attachable,
+		Labels:         req.Labels,
+		IPAM:           req.IPAM,
+	})
 	if err != nil {
 		return &DockerNetwork{}, err
 	}

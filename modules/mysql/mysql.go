@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/testcontainers/testcontainers-go"
+	tccontainer "github.com/testcontainers/testcontainers-go/container"
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
@@ -96,7 +97,7 @@ func RunContainer(ctx context.Context, opts ...testcontainers.ContainerCustomize
 
 // MustConnectionString panics if the address cannot be determined.
 func (c *MySQLContainer) MustConnectionString(ctx context.Context, args ...string) string {
-	addr, err := c.ConnectionString(ctx,args...)
+	addr, err := c.ConnectionString(ctx, args...)
 	if err != nil {
 		panic(err)
 	}
@@ -152,7 +153,7 @@ func WithDatabase(database string) testcontainers.CustomizeRequestOption {
 
 func WithConfigFile(configFile string) testcontainers.CustomizeRequestOption {
 	return func(req *testcontainers.GenericContainerRequest) error {
-		cf := testcontainers.ContainerFile{
+		cf := tccontainer.ContainerFile{
 			HostFilePath:      configFile,
 			ContainerFilePath: "/etc/mysql/conf.d/my.cnf",
 			FileMode:          0o755,
@@ -165,9 +166,9 @@ func WithConfigFile(configFile string) testcontainers.CustomizeRequestOption {
 
 func WithScripts(scripts ...string) testcontainers.CustomizeRequestOption {
 	return func(req *testcontainers.GenericContainerRequest) error {
-		var initScripts []testcontainers.ContainerFile
+		var initScripts []tccontainer.ContainerFile
 		for _, script := range scripts {
-			cf := testcontainers.ContainerFile{
+			cf := tccontainer.ContainerFile{
 				HostFilePath:      script,
 				ContainerFilePath: "/docker-entrypoint-initdb.d/" + filepath.Base(script),
 				FileMode:          0o755,

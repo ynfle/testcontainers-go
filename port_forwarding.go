@@ -16,7 +16,7 @@ import (
 
 const (
 	// hubSshdImage {
-	image string = "testcontainers/sshd:1.2.0"
+	sshDImage string = "testcontainers/sshd:1.2.0"
 	// }
 	// HostInternal is the internal hostname used to reach the host from the container,
 	// using the SSHD container as a bridge.
@@ -149,7 +149,7 @@ func exposeHostPorts(ctx context.Context, req *ContainerRequest, p ...int) (Cont
 func newSshdContainer(ctx context.Context, opts ...ContainerCustomizer) (*sshdContainer, error) {
 	req := GenericContainerRequest{
 		ContainerRequest: ContainerRequest{
-			Image:           image,
+			Image:           sshDImage,
 			HostAccessPorts: []int{}, // empty list because it does not need any port
 			ExposedPorts:    []string{sshPort},
 			Env:             map[string]string{"PASSWORD": sshPassword},

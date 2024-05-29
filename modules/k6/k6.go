@@ -14,14 +14,13 @@ import (
 	"github.com/docker/docker/api/types/mount"
 
 	"github.com/testcontainers/testcontainers-go"
-	tccontainer "github.com/testcontainers/testcontainers-go/container"
 	tcmount "github.com/testcontainers/testcontainers-go/mount"
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
 // K6Container represents the K6 container type used in the module
 type K6Container struct {
-	testcontainers.Container
+	*testcontainers.DockerContainer
 }
 
 type DownloadableFile struct {
@@ -38,7 +37,6 @@ func (d *DownloadableFile) getDownloadPath() string {
 }
 
 func downloadFileFromDescription(d DownloadableFile) error {
-
 	client := http.Client{Timeout: time.Second * 60}
 	req, err := http.NewRequest(http.MethodGet, d.Uri.String(), nil)
 	if err != nil {
@@ -74,7 +72,7 @@ func WithTestScript(scriptPath string) testcontainers.CustomizeRequestOption {
 	scriptBaseName := filepath.Base(scriptPath)
 	f, err := os.Open(scriptPath)
 	if err != nil {
-		return func(req *testcontainers.GenericContainerRequest) error {
+		return func(req *testcontainers.Request) error {
 			return fmt.Errorf("cannot create reader for test file: %w", err)
 		}
 	}
@@ -87,11 +85,11 @@ func WithTestScript(scriptPath string) testcontainers.CustomizeRequestOption {
 // The script base name is not a path, neither absolute or relative and should
 // be just the file name of the script
 func WithTestScriptReader(reader io.Reader, scriptBaseName string) testcontainers.CustomizeRequestOption {
-	opt := func(req *testcontainers.GenericContainerRequest) error {
+	opt := func(req *testcontainers.Request) error {
 		target := "/home/k6x/" + scriptBaseName
 		req.Files = append(
 			req.Files,
-			tccontainer.ContainerFile{
+			testcontainers.ContainerFile{
 				Reader:            reader,
 				ContainerFilePath: target,
 				FileMode:          0o644,
@@ -110,7 +108,7 @@ func WithTestScriptReader(reader io.Reader, scriptBaseName string) testcontainer
 func WithRemoteTestScript(d DownloadableFile) testcontainers.CustomizeRequestOption {
 	err := downloadFileFromDescription(d)
 	if err != nil {
-		return func(req *testcontainers.GenericContainerRequest) error {
+		return func(req *testcontainers.Request) error {
 			return fmt.Errorf("not able to download required test script: %w", err)
 		}
 	}
@@ -120,7 +118,7 @@ func WithRemoteTestScript(d DownloadableFile) testcontainers.CustomizeRequestOpt
 
 // WithCmdOptions pass the given options to the k6 run command
 func WithCmdOptions(options ...string) testcontainers.CustomizeRequestOption {
-	return func(req *testcontainers.GenericContainerRequest) error {
+	return func(req *testcontainers.Request) error {
 		req.Cmd = append(req.Cmd, options...)
 
 		return nil
@@ -129,7 +127,7 @@ func WithCmdOptions(options ...string) testcontainers.CustomizeRequestOption {
 
 // SetEnvVar adds a '--env' command-line flag to the k6 command in the container for setting an environment variable for the test script.
 func SetEnvVar(variable string, value string) testcontainers.CustomizeRequestOption {
-	return func(req *testcontainers.GenericContainerRequest) error {
+	return func(req *testcontainers.Request) error {
 		req.Cmd = append(req.Cmd, "--env", fmt.Sprintf("%s=%s", variable, value))
 
 		return nil
@@ -152,7 +150,7 @@ func WithCache() testcontainers.CustomizeRequestOption {
 		}
 	}
 
-	return func(req *testcontainers.GenericContainerRequest) error {
+	return func(req *testcontainers.Request) error {
 		mount := tcmount.ContainerMount{
 			Source: tcmount.DockerVolumeSource{
 				Name:          cacheVol,
@@ -167,28 +165,24 @@ func WithCache() testcontainers.CustomizeRequestOption {
 }
 
 // RunContainer creates an instance of the K6 container type
-func RunContainer(ctx context.Context, opts ...testcontainers.ContainerCustomizer) (*K6Container, error) {
-	req := testcontainers.ContainerRequest{
+func RunContainer(ctx context.Context, opts ...testcontainers.RequestCustomizer) (*K6Container, error) {
+	req := testcontainers.Request{
 		Image:      "szkiba/k6x:v0.3.1",
 		Cmd:        []string{"run"},
 		WaitingFor: wait.ForExit(),
-	}
-
-	genericContainerReq := testcontainers.GenericContainerRequest{
-		ContainerRequest: req,
-		Started:          true,
+		Started:    true,
 	}
 
 	for _, opt := range opts {
-		if err := opt.Customize(&genericContainerReq); err != nil {
+		if err := opt.Customize(&req); err != nil {
 			return nil, err
 		}
 	}
 
-	container, err := testcontainers.GenericContainer(ctx, genericContainerReq)
+	container, err := testcontainers.New(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 
-	return &K6Container{Container: container}, nil
+	return &K6Container{DockerContainer: container}, nil
 }

@@ -19,7 +19,7 @@ import (
 
 // RegistryContainer represents the Registry container type used in the module
 type RegistryContainer struct {
-	testcontainers.Container
+	*testcontainers.DockerContainer
 	RegistryName string
 }
 
@@ -124,13 +124,11 @@ func (c *RegistryContainer) ImageExists(ctx context.Context, imageRef string) er
 // PushImage pushes an image to the Registry container. It will use the internally stored RegistryName
 // to push the image to the container, and it will finally wait for the image to be pushed.
 func (c *RegistryContainer) PushImage(ctx context.Context, ref string) error {
-	dockerProvider, err := testcontainers.NewDockerProvider()
+	dockerCli, err := testcontainers.NewDockerClientWithOpts(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to create Docker provider: %w", err)
 	}
-	defer dockerProvider.Close()
-
-	dockerCli := dockerProvider.Client()
+	defer dockerCli.Close()
 
 	_, imageAuth, err := auth.ForDockerImage(ctx, ref)
 	if err != nil {
@@ -158,8 +156,8 @@ func (c *RegistryContainer) PushImage(ctx context.Context, ref string) error {
 }
 
 // RunContainer creates an instance of the Registry container type
-func RunContainer(ctx context.Context, opts ...testcontainers.ContainerCustomizer) (*RegistryContainer, error) {
-	req := testcontainers.ContainerRequest{
+func RunContainer(ctx context.Context, opts ...testcontainers.RequestCustomizer) (*RegistryContainer, error) {
+	req := testcontainers.Request{
 		Image:        "registry:2.8.3",
 		ExposedPorts: []string{"5000/tcp"},
 		Env: map[string]string{
@@ -170,23 +168,19 @@ func RunContainer(ctx context.Context, opts ...testcontainers.ContainerCustomize
 			wait.ForExposedPort(),
 			wait.ForLog("listening on [::]:5000").WithStartupTimeout(10*time.Second),
 		),
-	}
-
-	genericContainerReq := testcontainers.GenericContainerRequest{
-		ContainerRequest: req,
-		Started:          true,
+		Started: true,
 	}
 
 	for _, opt := range opts {
-		opt.Customize(&genericContainerReq)
+		opt.Customize(&req)
 	}
 
-	container, err := testcontainers.GenericContainer(ctx, genericContainerReq)
+	container, err := testcontainers.New(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 
-	c := &RegistryContainer{Container: container}
+	c := &RegistryContainer{DockerContainer: container}
 
 	address, err := c.Address(ctx)
 	if err != nil {

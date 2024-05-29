@@ -148,7 +148,7 @@ func (suite *AuthNSuite) TestQuery() {
 	suite.Equal(523123, id)
 }
 
-func conn(ctx context.Context, container *cockroachdb.CockroachDBContainer) (*pgx.Conn, error) {
+func conn(ctx context.Context, container *cockroachdb.Container) (*pgx.Conn, error) {
 	cfg, err := pgx.ParseConfig(container.MustConnectionString(ctx))
 	if err != nil {
 		return nil, err

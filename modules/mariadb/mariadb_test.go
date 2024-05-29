@@ -36,8 +36,8 @@ func TestMariaDB(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	mustConnectionString := container.MustConnectionString(ctx,"tls=false")
-	if mustConnectionString!=connectionString{
+	mustConnectionString := container.MustConnectionString(ctx, "tls=false")
+	if mustConnectionString != connectionString {
 		t.Errorf("ConnectionString was not equal to MustConnectionString")
 	}
 
@@ -202,7 +202,7 @@ func TestMariaDBWithScripts(t *testing.T) {
 	assertDataCanBeFetched(t, ctx, container)
 }
 
-func assertDataCanBeFetched(t *testing.T, ctx context.Context, container *mariadb.MariaDBContainer) {
+func assertDataCanBeFetched(t *testing.T, ctx context.Context, container *mariadb.Container) {
 	connectionString, err := container.ConnectionString(ctx)
 	if err != nil {
 		t.Fatal(err)

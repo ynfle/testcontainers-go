@@ -17,14 +17,16 @@ import (
 
 func TestCockroach_Insecure(t *testing.T) {
 	suite.Run(t, &AuthNSuite{
+		// TODO: the localhost URL is valid when not using a remote Docker daemon, which changes to 127.0.0.1
 		url: "postgres://root@localhost:xxxxx/defaultdb?sslmode=disable",
 	})
 }
 
 func TestCockroach_NotRoot(t *testing.T) {
 	suite.Run(t, &AuthNSuite{
+		// TODO: the localhost URL is valid when not using a remote Docker daemon, which changes to 127.0.0.1
 		url: "postgres://test@localhost:xxxxx/defaultdb?sslmode=disable",
-		opts: []testcontainers.ContainerCustomizer{
+		opts: []testcontainers.RequestCustomizer{
 			cockroachdb.WithUser("test"),
 		},
 	})
@@ -32,8 +34,9 @@ func TestCockroach_NotRoot(t *testing.T) {
 
 func TestCockroach_Password(t *testing.T) {
 	suite.Run(t, &AuthNSuite{
+		// TODO: the localhost URL is valid when not using a remote Docker daemon, which changes to 127.0.0.1
 		url: "postgres://foo:bar@localhost:xxxxx/defaultdb?sslmode=disable",
-		opts: []testcontainers.ContainerCustomizer{
+		opts: []testcontainers.RequestCustomizer{
 			cockroachdb.WithUser("foo"),
 			cockroachdb.WithPassword("bar"),
 		},
@@ -45,8 +48,9 @@ func TestCockroach_TLS(t *testing.T) {
 	require.NoError(t, err)
 
 	suite.Run(t, &AuthNSuite{
+		// TODO: the localhost URL is valid when not using a remote Docker daemon, which changes to 127.0.0.1
 		url: "postgres://root@localhost:xxxxx/defaultdb?sslmode=verify-full",
-		opts: []testcontainers.ContainerCustomizer{
+		opts: []testcontainers.RequestCustomizer{
 			cockroachdb.WithTLS(tlsCfg),
 		},
 	})
@@ -55,7 +59,7 @@ func TestCockroach_TLS(t *testing.T) {
 type AuthNSuite struct {
 	suite.Suite
 	url  string
-	opts []testcontainers.ContainerCustomizer
+	opts []testcontainers.RequestCustomizer
 }
 
 func (suite *AuthNSuite) TestConnectionString() {
@@ -80,7 +84,7 @@ func (suite *AuthNSuite) TestPing() {
 
 	inputs := []struct {
 		name string
-		opts []testcontainers.ContainerCustomizer
+		opts []testcontainers.RequestCustomizer
 	}{
 		{
 			name: "defaults",
@@ -88,7 +92,7 @@ func (suite *AuthNSuite) TestPing() {
 		},
 		{
 			name: "database",
-			opts: []testcontainers.ContainerCustomizer{
+			opts: []testcontainers.RequestCustomizer{
 				cockroachdb.WithDatabase("test"),
 			},
 		},

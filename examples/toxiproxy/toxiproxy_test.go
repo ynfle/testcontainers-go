@@ -10,13 +10,14 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
 
+	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/network"
 )
 
 func TestToxiproxy(t *testing.T) {
 	ctx := context.Background()
 
-	newNetwork, err := network.New(ctx, network.WithCheckDuplicate())
+	newNetwork, err := testcontainers.NewNetwork(ctx, network.WithCheckDuplicate())
 	if err != nil {
 		t.Fatal(err)
 	}

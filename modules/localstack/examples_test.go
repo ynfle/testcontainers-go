@@ -53,7 +53,7 @@ func ExampleRunContainer_withNetwork() {
 	// localstackWithNetwork {
 	ctx := context.Background()
 
-	newNetwork, err := network.New(ctx, network.WithCheckDuplicate())
+	newNetwork, err := testcontainers.NewNetwork(ctx, network.WithCheckDuplicate())
 	if err != nil {
 		log.Fatalf("failed to create network: %s", err)
 	}

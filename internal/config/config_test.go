@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/magiconair/properties"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -278,7 +279,7 @@ func TestReadTCConfig(t *testing.T) {
 				``,
 				map[string]string{
 					"TESTCONTAINERS_RYUK_RECONNECTION_TIMEOUT": "13s",
-					"TESTCONTAINERS_RYUK_CONNECTION_TIMEOUT": "12s",
+					"TESTCONTAINERS_RYUK_CONNECTION_TIMEOUT":   "12s",
 				},
 				Config{
 					RyukReconnectionTimeout: 13 * time.Second,
@@ -291,7 +292,7 @@ func TestReadTCConfig(t *testing.T) {
 	ryuk.reconnection.timeout=23s`,
 				map[string]string{
 					"TESTCONTAINERS_RYUK_RECONNECTION_TIMEOUT": "13s",
-					"TESTCONTAINERS_RYUK_CONNECTION_TIMEOUT": "12s",
+					"TESTCONTAINERS_RYUK_CONNECTION_TIMEOUT":   "12s",
 				},
 				Config{
 					RyukReconnectionTimeout: 13 * time.Second,
@@ -536,4 +537,44 @@ func TestReadTCConfig(t *testing.T) {
 			})
 		}
 	})
+}
+
+func TestMustWrite(t *testing.T) {
+	c := Config{
+		Host:                    tcpDockerHost33293,
+		TLSVerify:               1,
+		CertPath:                "/tmp/certs",
+		RyukDisabled:            true,
+		RyukPrivileged:          true,
+		RyukVerbose:             true,
+		RyukReconnectionTimeout: 13 * time.Second,
+		RyukConnectionTimeout:   12 * time.Second,
+		HubImageNamePrefix:      "registry.mycompany.com/mirror",
+	}
+
+	tmpDir := t.TempDir()
+
+	c.MustWrite(tmpDir + "/.testcontainers.properties")
+
+	p, err := properties.LoadFile(tmpDir+"/.testcontainers.properties", properties.UTF8)
+	if err != nil {
+		t.Fatalf("Failed to read properties file: %v", err)
+	}
+
+	assert.Equal(t, tcpDockerHost33293, p.GetString("docker.host", ""))
+	assert.Equal(t, "1", p.GetString("docker.tls.verify", ""))
+	assert.Equal(t, "/tmp/certs", p.GetString("docker.cert.path", ""))
+	assert.Equal(t, "true", p.GetString("ryuk.disabled", ""))
+	assert.Equal(t, "true", p.GetString("ryuk.container.privileged", ""))
+	assert.Equal(t, "true", p.GetString("ryuk.verbose", ""))
+	assert.Equal(t, "13s", p.GetString("ryuk.reconnection.timeout", ""))
+	assert.Equal(t, "12s", p.GetString("ryuk.connection.timeout", ""))
+	assert.Equal(t, "registry.mycompany.com/mirror", p.GetString("hub.image.name.prefix", ""))
+
+	t.Setenv("HOME", tmpDir)
+	t.Setenv("USERPROFILE", tmpDir) // Windows support
+
+	c1 := read()
+
+	assert.Equal(t, c, c1)
 }
